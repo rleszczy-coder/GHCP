@@ -85,6 +85,87 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  const unregisterForm = document.createElement("form");
+  unregisterForm.id = "unregister-form";
+  unregisterForm.innerHTML = `
+    <h3>Unregister from an Activity</h3>
+    <div class="form-group">
+      <label for="unregister-email">Student Email:</label>
+      <input type="email" id="unregister-email" required placeholder="your-email@mergington.edu" />
+    </div>
+    <div class="form-group">
+      <label for="unregister-activity">Select Activity:</label>
+      <select id="unregister-activity" required>
+        <option value="">-- Select an activity --</option>
+        <!-- Activity options will be loaded here -->
+      </select>
+    </div>
+    <button type="submit">Unregister</button>
+    <div id="unregister-message" class="hidden"></div>
+  `;
+  document.body.appendChild(unregisterForm);
+
+  const unregisterActivitySelect = document.getElementById("unregister-activity");
+  const unregisterMessageDiv = document.getElementById("unregister-message");
+
+  // Populate unregister activity dropdown
+  async function populateUnregisterDropdown() {
+    try {
+      const response = await fetch("/activities");
+      const activities = await response.json();
+
+      Object.keys(activities).forEach((name) => {
+        const option = document.createElement("option");
+        option.value = name;
+        option.textContent = name;
+        unregisterActivitySelect.appendChild(option);
+      });
+    } catch (error) {
+      console.error("Error fetching activities for unregister dropdown:", error);
+    }
+  }
+
+  // Handle unregister form submission
+  unregisterForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const email = document.getElementById("unregister-email").value;
+    const activity = document.getElementById("unregister-activity").value;
+
+    try {
+      const response = await fetch(
+        `/activities/${encodeURIComponent(activity)}/unregister?email=${encodeURIComponent(email)}`,
+        {
+          method: "POST",
+        }
+      );
+
+      const result = await response.json();
+
+      if (response.ok) {
+        unregisterMessageDiv.textContent = result.message;
+        unregisterMessageDiv.className = "success";
+        unregisterForm.reset();
+      } else {
+        unregisterMessageDiv.textContent = result.detail || "An error occurred";
+        unregisterMessageDiv.className = "error";
+      }
+
+      unregisterMessageDiv.classList.remove("hidden");
+
+      // Hide message after 5 seconds
+      setTimeout(() => {
+        unregisterMessageDiv.classList.add("hidden");
+      }, 5000);
+    } catch (error) {
+      unregisterMessageDiv.textContent = "Failed to unregister. Please try again.";
+      unregisterMessageDiv.className = "error";
+      unregisterMessageDiv.classList.remove("hidden");
+      console.error("Error unregistering:", error);
+    }
+  });
+
   // Initialize app
   fetchActivities();
+  populateUnregisterDropdown();
 });
